@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, createRef, useReducer, useRef } from 'react';
 import axios, { AxiosResponse } from 'axios'
 import Table from './Table'
+
 import { Grid, Fab, Container, makeStyles, Theme, createStyles } from '@material-ui/core';
 import { Add } from '@material-ui/icons'
 import { Project, MR, Note } from './Types';
 import { Line } from 'rc-progress'
+import Table2 from './Table2';
+import { createReadStream } from 'fs';
 
 
 function App() {
@@ -12,10 +15,13 @@ function App() {
   const [progress, setProgress] = useState<number>(0)
   const endpoint = 'https://gitlab.com/api/v4'
   const groupName = 'gamespf/service/store/store_vn'
+  const ref = useRef(createRef())
+  
   const ax = axios.create({
     baseURL: endpoint,
     headers: { 'PRIVATE-TOKEN': process.env.REACT_APP_PRIVATE_KEY }
   })
+
   const getMR = async () => {
     setProgress(0)
     console.time('MR')
@@ -34,7 +40,7 @@ function App() {
             })
             return projectMRs
           }))
-        setProgress((index + 1) / numberOfProjects)
+        setProgress(((index + 1) / numberOfProjects) * 100)
       })
 
       await Promise.all(pMRs).then((res) => {
@@ -43,7 +49,10 @@ function App() {
     })
 
     let pNotes: Promise<void | AxiosResponse>[] = []
-    MRs.forEach((mr: MR) => {
+    const numberOfMRs = MRs.length
+    let pNotesCount = 1
+    setProgress(0)
+    MRs.forEach((mr: MR, index: number) => {
       pNotes.push(
         getNotes(mr).then((res) => {
           const MRNotes = res.data.map((note: Note) => {
@@ -51,12 +60,19 @@ function App() {
             return note
           })
           return MRNotes
+          setProgress((pNotesCount++ / numberOfNotes) * 100)
         })
       )
+      setProgress(((index + 1) / numberOfMRs) * 100)
+
     })
     let notes: Note[] = []
+    const numberOfNotes = pNotes.length
+    setProgress(0)
+  
     Promise.all(pNotes).then((res) => {
       notes = notes.concat(res.flat())
+      console.log(notes)
       setNotes(notes)
     })
 
@@ -71,24 +87,14 @@ function App() {
   const getNotes = (mr: MR) =>
     ax.get(`/projects/${mr.project.id}/merge_requests/${mr.iid}/notes`)
 
-  const useStyles = makeStyles((theme: Theme) =>
-    createStyles({
-      root: {
-        '& > *': {
-          margin: theme.spacing(1),
-        },
-      },
-      extendedIcon: {
-        marginRight: theme.spacing(1),
-      },
-    }),
-  );
-  const classes = useStyles();
   return (
-    <div className={classes.root}>
+    <div>
+      
       <Container>
+      <Table2 notes={notes}/>
         <Line percent={progress}></Line>
-        <Table notes={notes} />
+        {/* <Table notes={notes} /> */}
+        
         <Fab color="primary" aria-label="add" onClick={() => getMR()}>
           <Add />
         </Fab>
