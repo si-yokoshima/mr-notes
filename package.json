@@ -13,7 +13,7 @@
     "@types/node": "^12.0.0",
     "@types/react": "^16.9.0",
     "@types/react-dom": "^16.9.0",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "handsontable": "^7.3.0",
     "material-table": "^1.54.2",
     "p-iteration": "^1.1.8",
